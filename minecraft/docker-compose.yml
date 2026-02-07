@@ -14,7 +14,7 @@ services:
 
       # Server identity & gameplay
       SERVER_NAME: "Böxli"
-      MODE: "creative"
+      MODE: "survival"
       DIFFICULTY: "normal"
       MAX_PLAYERS: "10"
       MOTD: "Willkommen im Böxli!"

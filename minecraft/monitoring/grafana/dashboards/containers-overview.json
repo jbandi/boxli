@@ -1,0 +1,49 @@
+{
+  "id": null,
+  "uid": "mc-containers",
+  "title": "Containers Overview",
+  "tags": ["minecraft", "containers"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Container CPU %",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by(name) (rate(container_cpu_usage_seconds_total{name=~\"minecraft|minecraft-backup|minecraft-dyndns|minecraft-prometheus|minecraft-grafana|minecraft-node-exporter|minecraft-cadvisor|minecraft-blackbox-exporter|minecraft-file-metrics\"}[5m])) * 100",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "type": "timeseries",
+      "title": "Container Memory (MiB)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by(name) (container_memory_usage_bytes{name=~\"minecraft|minecraft-backup|minecraft-dyndns|minecraft-prometheus|minecraft-grafana|minecraft-node-exporter|minecraft-cadvisor|minecraft-blackbox-exporter|minecraft-file-metrics\"}) / 1024 / 1024",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "type": "timeseries",
+      "title": "Recent Restarts (15m)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by(name) (increase(container_start_time_seconds{name=~\"minecraft|minecraft-backup|minecraft-dyndns\"}[15m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    }
+  ]
+}

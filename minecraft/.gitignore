@@ -3,3 +3,7 @@ data*
 backups/
 logs/
 .env
+
+
+
+.DS_Store

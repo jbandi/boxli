@@ -71,3 +71,28 @@ services:
       - /home/mc/minecraft/data:/data:ro
       - /home/mc/minecraft/backups:/backups
     restart: unless-stopped
+
+  dyndns:
+    image: curlimages/curl:8.12.1
+    container_name: minecraft-dyndns
+    environment:
+      TZ: "Europe/Zurich"
+      DYNDNS_HOST: "${DYNDNS_HOST}"
+      DYNDNS_USER: "${DYNDNS_USER}"
+      DYNDNS_PASS: "${DYNDNS_PASS}"
+      CHECK_INTERVAL: "300"
+    volumes:
+      - /home/mc/minecraft/dyndns:/state
+    command: >
+      sh -ec '
+        while true; do
+          IP="$$(curl -fsS https://api.ipify.org || true)"
+          LAST="$$(cat /state/last_ip 2>/dev/null || true)"
+          if [ -n "$$IP" ] && [ "$$IP" != "$$LAST" ]; then
+            RESP="$$(curl -fsS -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST&myip=$$IP" || true)"
+            echo "$$RESP" | grep -Eq "good|nochg" && echo "$$IP" > /state/last_ip
+          fi
+          sleep "$$CHECK_INTERVAL"
+        done
+      '
+    restart: unless-stopped

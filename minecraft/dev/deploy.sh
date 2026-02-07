@@ -20,6 +20,7 @@ rsync -avz --delete \
   ${RSYNC_DRY_RUN_FLAG} \
   --exclude '.git' \
   --exclude '.gitignore' \
+  --exclude '.env' \
   --exclude 'data*' \
   --exclude 'dev' \
   ./ "${PI_HOST}:${DEST}/"

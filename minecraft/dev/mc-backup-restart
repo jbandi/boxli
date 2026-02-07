@@ -1,0 +1,10 @@
+#!/bin/sh
+# Deploy on Raspberry Pi:
+# 1) rsync -avz /Users/jonas/Dev/boxli/minecraft/dev/mc-backup-restart boxli:/tmp/mc-backup-restart
+# 2) ssh boxli "sudo cp /tmp/mc-backup-restart /lib/systemd/system-sleep/mc-backup-restart"
+# 3) ssh boxli "sudo chmod +x /lib/systemd/system-sleep/mc-backup-restart"
+# 4) Test by running: ssh boxli "sudo /lib/systemd/system-sleep/mc-backup-restart post"
+
+if [ "$1" = "post" ]; then
+  /usr/bin/docker compose -f /home/mc/minecraft/docker-compose.yml restart backup
+fi

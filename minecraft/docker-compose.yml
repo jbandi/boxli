@@ -50,3 +50,24 @@ services:
     volumes:
       - /home/mc/minecraft/data:/data
     restart: unless-stopped
+
+  backup:
+    image: itzg/mc-backup:latest
+    container_name: minecraft-backup
+    user: "1001:1001"
+    depends_on:
+      - mc
+    environment:
+      TZ: "Europe/Zurich"
+      BACKUP_METHOD: "tar"
+      BACKUP_INTERVAL: "24h"
+      PRUNE_BACKUPS_DAYS: "30"
+      RCON_HOST: "mc"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "CHANGE_ME_LONG_RANDOM_SECRET"
+      PAUSE_IF_NO_PLAYERS: "true"
+      ANNOUNCE_BACKUP: "true"
+    volumes:
+      - /home/mc/minecraft/data:/data:ro
+      - /home/mc/minecraft/backups:/backups
+    restart: unless-stopped

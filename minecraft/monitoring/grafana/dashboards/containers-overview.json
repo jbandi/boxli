@@ -15,8 +15,8 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum by(container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"minecraft\",image!=\"\"}[5m])) * 100",
-          "legendFormat": "{{container_label_com_docker_compose_service}}"
+          "expr": "sum by(id) (rate(container_cpu_usage_seconds_total{job=\"cadvisor\",id!=\"/\"}[5m])) * 100",
+          "legendFormat": "{{id}}"
         }
       ],
       "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -27,8 +27,8 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "sum by(container_label_com_docker_compose_service) (container_memory_usage_bytes{container_label_com_docker_compose_project=\"minecraft\",image!=\"\"}) / 1024 / 1024",
-          "legendFormat": "{{container_label_com_docker_compose_service}}"
+          "expr": "sum by(id) (container_memory_usage_bytes{job=\"cadvisor\",id!=\"/\"}) / 1024 / 1024",
+          "legendFormat": "{{id}}"
         }
       ],
       "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -39,8 +39,8 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "sum by(container_label_com_docker_compose_service) (changes(container_start_time_seconds{container_label_com_docker_compose_project=\"minecraft\",image!=\"\"}[15m]))",
-          "legendFormat": "{{container_label_com_docker_compose_service}}"
+          "expr": "sum by(id) (changes(container_start_time_seconds{job=\"cadvisor\",id!=\"/\"}[15m]))",
+          "legendFormat": "{{id}}"
         }
       ],
       "datasource": { "type": "prometheus", "uid": "prometheus" }

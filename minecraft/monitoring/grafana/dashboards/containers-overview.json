@@ -5,7 +5,7 @@
   "tags": ["minecraft", "containers"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
   "panels": [
@@ -15,7 +15,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum by(container_name) (label_replace(rate(container_cpu_usage_seconds_total{job=\"cadvisor\",id=~\"/docker/.*\",name=~\"/.+\"}[5m]), \"container_name\", \"$1\", \"name\", \"^/(.*)$\")) * 100",
+          "expr": "sum by(container_name) (label_replace(rate(container_cpu_usage_seconds_total{job=\"cadvisor\",image!=\"\"}[5m]), \"container_name\", \"$1\", \"name\", \"^/?(.*)$\")) * 100",
           "legendFormat": "{{container_name}}"
         }
       ],
@@ -27,7 +27,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "sum by(container_name) (label_replace(container_memory_usage_bytes{job=\"cadvisor\",id=~\"/docker/.*\",name=~\"/.+\"}, \"container_name\", \"$1\", \"name\", \"^/(.*)$\")) / 1024 / 1024",
+          "expr": "sum by(container_name) (label_replace(container_memory_usage_bytes{job=\"cadvisor\",image!=\"\"}, \"container_name\", \"$1\", \"name\", \"^/?(.*)$\")) / 1024 / 1024",
           "legendFormat": "{{container_name}}"
         }
       ],
@@ -39,7 +39,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "sum by(container_name) (label_replace(changes(container_start_time_seconds{job=\"cadvisor\",id=~\"/docker/.*\",name=~\"/.+\"}[15m]), \"container_name\", \"$1\", \"name\", \"^/(.*)$\"))",
+          "expr": "sum by(container_name) (label_replace(changes(container_start_time_seconds{job=\"cadvisor\",image!=\"\"}[15m]), \"container_name\", \"$1\", \"name\", \"^/?(.*)$\"))",
           "legendFormat": "{{container_name}}"
         }
       ],

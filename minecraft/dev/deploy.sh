@@ -26,7 +26,7 @@ rsync -avz --delete \
   ./ "${PI_HOST}:${DEST}/"
 
 if [[ "${DRY_RUN}" == "true" ]]; then
-  echo "Would run: ssh \"${PI_HOST}\" \"cd ${DEST} && docker compose pull && docker compose up -d\""
+  echo "Would run: ssh \"${PI_HOST}\" \"cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart\""
 else
-  ssh "${PI_HOST}" "cd ${DEST} && docker compose pull && docker compose up -d"
+  ssh "${PI_HOST}" "cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart"
 fi

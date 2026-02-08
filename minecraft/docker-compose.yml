@@ -155,6 +155,31 @@ services:
       - "127.0.0.1:3000:3000"
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: minecraft-loki
+    command:
+      - -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./monitoring/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.10.0
+    container_name: minecraft-alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+
   node-exporter:
     image: prom/node-exporter:v1.8.2
     container_name: minecraft-node-exporter
@@ -247,3 +272,4 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  loki_data:

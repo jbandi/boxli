@@ -21,7 +21,8 @@ rsync -avz --delete \
   --exclude '.git' \
   --exclude '.gitignore' \
   --exclude '.env' \
-  --exclude 'data*' \
+  --exclude '/data/' \
+  --exclude '/data_*' \
   --exclude 'dev' \
   ./ "${PI_HOST}:${DEST}/"
 

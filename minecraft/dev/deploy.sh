@@ -18,16 +18,15 @@ fi
 
 rsync -avz --delete \
   ${RSYNC_DRY_RUN_FLAG} \
-  --exclude '.git' \
-  --exclude '.gitignore' \
-  --exclude '.env' \
-  --exclude '/data/' \
-  --exclude '/data_*' \
-  --exclude 'dev' \
+  --exclude='.DS_Store' \
+  --include='docker-compose.yml' \
+  --include='monitoring/' \
+  --include='monitoring/**' \
+  --exclude='*' \
   ./ "${PI_HOST}:${DEST}/"
 
 if [[ "${DRY_RUN}" == "true" ]]; then
-  echo "Would run: ssh \"${PI_HOST}\" \"cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart\""
+  echo "Would run: ssh \"${PI_HOST}\" \"mkdir -p ${DEST}/dyndns && cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart\""
 else
-  ssh "${PI_HOST}" "cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart"
+  ssh "${PI_HOST}" "mkdir -p ${DEST}/dyndns && cd ${DEST} && docker compose pull && docker compose up -d && docker compose restart"
 fi

@@ -86,12 +86,26 @@ services:
       - /home/mc/minecraft/dyndns:/state
     command: >
       sh -ec '
+        log() { echo "[`date +"%Y-%m-%d %H:%M:%S %Z"`] $$*"; }
+        log "dyndns started – host=$$DYNDNS_HOST interval=$${CHECK_INTERVAL}s"
+        touch /state/.writetest 2>/dev/null && rm -f /state/.writetest || { log "FATAL  /state is not writable – fix with: sudo chown 1001:1001 /home/mc/minecraft/dyndns"; exit 1; }
         while true; do
-          IP="$$(curl -4 -fsS https://api.ipify.org || true)"
+          IP="$$(curl -4 -fsS --max-time 10 https://api.ipify.org 2>&1)" || { log "ERROR  ip-check failed: $$IP"; sleep "$$CHECK_INTERVAL"; continue; }
           LAST="$$(cat /state/last_ip 2>/dev/null || true)"
-          if [ -n "$$IP" ] && [ "$$IP" != "$$LAST" ]; then
-            RESP="$$(curl -4 -fsS -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" || true)"
-            echo "$$RESP" | grep -Eq "good|nochg" && echo "$$IP" > /state/last_ip
+          if [ -z "$$IP" ]; then
+            log "WARN   ip-check returned empty response"
+          elif [ "$$IP" = "$$LAST" ]; then
+            log "OK     ip=$$IP (unchanged)"
+          else
+            log "CHANGE ip=$$IP (was $${LAST:-<none>}), updating Infomaniak..."
+            HTTP_CODE="$$(curl -4 -sS --max-time 10 -o /tmp/dyndns_resp -w "%%{http_code}" -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" 2>&1)" || { log "ERROR  update request failed: $$HTTP_CODE"; sleep "$$CHECK_INTERVAL"; continue; }
+            RESP="$$(cat /tmp/dyndns_resp)"
+            if echo "$$RESP" | grep -Eq "good|nochg"; then
+              echo "$$IP" > /state/last_ip || log "WARN   could not persist ip to /state/last_ip"
+              log "OK     update success – response=\"$$RESP\" http=$$HTTP_CODE"
+            else
+              log "ERROR  update failed – response=\"$$RESP\" http=$$HTTP_CODE"
+            fi
           fi
           sleep "$$CHECK_INTERVAL"
         done

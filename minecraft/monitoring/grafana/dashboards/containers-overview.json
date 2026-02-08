@@ -5,7 +5,7 @@
   "tags": ["minecraft", "containers"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 8,
+  "version": 16,
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
   "panels": [
@@ -15,32 +15,20 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum by(name) (rate(container_cpu_usage_seconds_total{job=\"cadvisor\",name!=\"\"}[5m])) * 100",
-          "legendFormat": "{{name}}"
+          "expr": "sum by(container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{job=\"cadvisor\",container_label_com_docker_compose_service=~\".+\"}[5m])) * 100",
+          "legendFormat": "{{container_label_com_docker_compose_service}}"
         }
       ],
       "datasource": { "type": "prometheus", "uid": "prometheus" }
     },
     {
       "type": "timeseries",
-      "title": "Container Memory (MiB)",
+      "title": "Container Memory Usage (MiB)",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "sum by(name) (container_memory_usage_bytes{job=\"cadvisor\",name!=\"\"}) / 1024 / 1024",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "datasource": { "type": "prometheus", "uid": "prometheus" }
-    },
-    {
-      "type": "timeseries",
-      "title": "Recent Restarts (15m)",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
-      "targets": [
-        {
-          "expr": "sum by(name) (changes(container_start_time_seconds{job=\"cadvisor\",name!=\"\"}[15m]))",
-          "legendFormat": "{{name}}"
+          "expr": "sum by(container_label_com_docker_compose_service) (container_memory_usage_bytes{job=\"cadvisor\",container_label_com_docker_compose_service=~\".+\"}) / 1024 / 1024",
+          "legendFormat": "{{container_label_com_docker_compose_service}}"
         }
       ],
       "datasource": { "type": "prometheus", "uid": "prometheus" }

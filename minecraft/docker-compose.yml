@@ -75,6 +75,7 @@ services:
   dyndns:
     image: curlimages/curl:8.12.1
     container_name: minecraft-dyndns
+    user: "1001:1001"
     environment:
       TZ: "Europe/Zurich"
       DYNDNS_HOST: "${DYNDNS_HOST}"
@@ -86,10 +87,10 @@ services:
     command: >
       sh -ec '
         while true; do
-          IP="$$(curl -fsS https://api.ipify.org || true)"
+          IP="$$(curl -4 -fsS https://api.ipify.org || true)"
           LAST="$$(cat /state/last_ip 2>/dev/null || true)"
           if [ -n "$$IP" ] && [ "$$IP" != "$$LAST" ]; then
-            RESP="$$(curl -fsS -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST&myip=$$IP" || true)"
+            RESP="$$(curl -4 -fsS -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" || true)"
             echo "$$RESP" | grep -Eq "good|nochg" && echo "$$IP" > /state/last_ip
           fi
           sleep "$$CHECK_INTERVAL"
@@ -144,14 +145,19 @@ services:
     restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.2
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: minecraft-cadvisor
+    command:
+      - --docker=unix:///var/run/docker.sock
+      - --store_container_labels=true
+      - --whitelisted_container_labels=com.docker.compose.service,com.docker.compose.project,com.docker.compose.container-number,com.docker.compose.oneoff
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
     restart: unless-stopped

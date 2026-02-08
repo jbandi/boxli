@@ -15,7 +15,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "(time() - minecraft_dyndns_last_ip_mtime_seconds) / 3600",
+          "expr": "(time() - minecraft_dyndns_last_ip_mtime_seconds) / 3600 and minecraft_dyndns_last_ip_mtime_seconds > 0",
           "legendFormat": "dyndns age"
         }
       ],
@@ -27,7 +27,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "(time() - minecraft_dyndns_last_ip_mtime_seconds) <= bool 86400",
+          "expr": "(time() - minecraft_dyndns_last_ip_mtime_seconds) / 3600 <= bool 24 and minecraft_dyndns_last_ip_mtime_seconds > 0",
           "legendFormat": "status"
         }
       ],
@@ -61,18 +61,6 @@
       "targets": [
         {
           "expr": "sum(container_memory_usage_bytes{container_label_com_docker_compose_project=\"minecraft\",container_label_com_docker_compose_service=\"dyndns\",image!=\"\"}) / 1024 / 1024",
-          "legendFormat": "minecraft-dyndns"
-        }
-      ],
-      "datasource": { "type": "prometheus", "uid": "prometheus" }
-    },
-    {
-      "type": "timeseries",
-      "title": "DynDNS Restarts (15m)",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "targets": [
-        {
-          "expr": "sum(changes(container_start_time_seconds{container_label_com_docker_compose_project=\"minecraft\",container_label_com_docker_compose_service=\"dyndns\",image!=\"\"}[15m]))",
           "legendFormat": "minecraft-dyndns"
         }
       ],

@@ -16,7 +16,7 @@ services:
       SERVER_NAME: "Böxli"
       MODE: "survival"
       DIFFICULTY: "normal"
-      MAX_PLAYERS: "10"
+      MAX_PLAYERS: "12"
       MOTD: "Willkommen im Böxli!"
 
       # Performance / view settings (Pi-friendly, Bedrock-safe)
@@ -87,8 +87,26 @@ services:
     command: >
       sh -ec '
         log() { echo "[`date +"%Y-%m-%d %H:%M:%S %Z"`] $$*"; }
+        update_infomaniak() {
+          IP="$$(curl -4 -fsS --max-time 10 https://api.ipify.org 2>&1)" || { log "ERROR  ip-check failed: $$IP"; return 1; }
+          if [ -z "$$IP" ]; then log "WARN   ip-check returned empty response"; return 1; fi
+          log "UPDATE ip=$$IP, sending to Infomaniak..."
+          HTTP_CODE="$$(curl -4 -sS --max-time 10 -o /tmp/dyndns_resp -w "%%{http_code}" -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" 2>&1)" || { log "ERROR  update request failed: $$HTTP_CODE"; return 1; }
+          RESP="$$(cat /tmp/dyndns_resp)"
+          echo "$$RESP" > /state/last_infomaniak_resp || log "WARN   could not persist response"
+          if echo "$$RESP" | grep -Eq "good|nochg"; then
+            echo "$$IP" > /state/last_ip || log "WARN   could not persist ip to /state/last_ip"
+            touch /state/last_infomaniak_ok || log "WARN   could not persist update timestamp"
+            log "OK     update success – response=\"$$RESP\" http=$$HTTP_CODE"
+          else
+            log "ERROR  update failed – response=\"$$RESP\" http=$$HTTP_CODE"
+            return 1
+          fi
+        }
         log "dyndns started – host=$$DYNDNS_HOST interval=$${CHECK_INTERVAL}s"
         touch /state/.writetest 2>/dev/null && rm -f /state/.writetest || { log "FATAL  /state is not writable – fix with: sudo chown 1001:1001 /home/mc/minecraft/dyndns"; exit 1; }
+        log "INIT   performing initial Infomaniak update..."
+        update_infomaniak || log "WARN   initial update failed, will retry in loop"
         while true; do
           IP="$$(curl -4 -fsS --max-time 10 https://api.ipify.org 2>&1)" || { log "ERROR  ip-check failed: $$IP"; sleep "$$CHECK_INTERVAL"; continue; }
           LAST="$$(cat /state/last_ip 2>/dev/null || true)"
@@ -98,14 +116,7 @@ services:
             log "OK     ip=$$IP (unchanged)"
           else
             log "CHANGE ip=$$IP (was $${LAST:-<none>}), updating Infomaniak..."
-            HTTP_CODE="$$(curl -4 -sS --max-time 10 -o /tmp/dyndns_resp -w "%%{http_code}" -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" 2>&1)" || { log "ERROR  update request failed: $$HTTP_CODE"; sleep "$$CHECK_INTERVAL"; continue; }
-            RESP="$$(cat /tmp/dyndns_resp)"
-            if echo "$$RESP" | grep -Eq "good|nochg"; then
-              echo "$$IP" > /state/last_ip || log "WARN   could not persist ip to /state/last_ip"
-              log "OK     update success – response=\"$$RESP\" http=$$HTTP_CODE"
-            else
-              log "ERROR  update failed – response=\"$$RESP\" http=$$HTTP_CODE"
-            fi
+            update_infomaniak || log "WARN   update failed, will retry next cycle"
           fi
           sleep "$$CHECK_INTERVAL"
         done
@@ -200,6 +211,10 @@ services:
             BACKUP_TS="0";
           fi;
           DYNDNS_TS="$$(stat -c %Y /dyndns/last_ip 2>/dev/null || echo 0)";
+          DYNDNS_IP="$$(cat /dyndns/last_ip 2>/dev/null || echo '')";
+          DYNDNS_UPDATE_TS="$$(stat -c %Y /dyndns/last_infomaniak_ok 2>/dev/null || echo 0)";
+          DYNDNS_RESP="$$(cat /dyndns/last_infomaniak_resp 2>/dev/null)";
+          [ -z "$$DYNDNS_RESP" ] && DYNDNS_RESP="no update yet";
           printf "%s\n" \
             "# HELP minecraft_backup_last_success_timestamp_seconds Unix timestamp of newest backup file." \
             "# TYPE minecraft_backup_last_success_timestamp_seconds gauge" \
@@ -207,6 +222,15 @@ services:
             "# HELP minecraft_dyndns_last_ip_mtime_seconds Unix timestamp of the dyndns last_ip state file." \
             "# TYPE minecraft_dyndns_last_ip_mtime_seconds gauge" \
             "minecraft_dyndns_last_ip_mtime_seconds $$DYNDNS_TS" \
+            "# HELP minecraft_dyndns_ip_info Current public IP address." \
+            "# TYPE minecraft_dyndns_ip_info gauge" \
+            "minecraft_dyndns_ip_info{ip=\"$$DYNDNS_IP\"} 1" \
+            "# HELP minecraft_dyndns_last_infomaniak_update_seconds Unix timestamp of last successful Infomaniak DynDNS update." \
+            "# TYPE minecraft_dyndns_last_infomaniak_update_seconds gauge" \
+            "minecraft_dyndns_last_infomaniak_update_seconds $$DYNDNS_UPDATE_TS" \
+            "# HELP minecraft_dyndns_infomaniak_response_info Last response from Infomaniak DynDNS API." \
+            "# TYPE minecraft_dyndns_infomaniak_response_info gauge" \
+            "minecraft_dyndns_infomaniak_response_info{response=\"$$DYNDNS_RESP\"} 1" \
             "# HELP minecraft_file_metrics_scrape_generated_timestamp_seconds Unix timestamp when this metrics file was generated." \
             "# TYPE minecraft_file_metrics_scrape_generated_timestamp_seconds gauge" \
             "minecraft_file_metrics_scrape_generated_timestamp_seconds $$NOW" \

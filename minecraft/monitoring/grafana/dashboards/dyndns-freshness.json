@@ -5,7 +5,7 @@
   "tags": ["minecraft", "dyndns"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 3,
   "refresh": "30s",
   "time": { "from": "now-7d", "to": "now" },
   "panels": [

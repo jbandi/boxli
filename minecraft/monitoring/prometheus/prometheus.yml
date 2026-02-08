@@ -19,6 +19,7 @@ scrape_configs:
       - targets: ["cadvisor:8080"]
 
   - job_name: file-metrics
+    fallback_scrape_protocol: PrometheusText0.0.4
     static_configs:
       - targets: ["file-metrics:9105"]
 

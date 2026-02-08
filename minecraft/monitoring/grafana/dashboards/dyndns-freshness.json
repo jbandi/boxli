@@ -48,7 +48,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"minecraft-dyndns\"}[5m])) * 100",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"minecraft\",container_label_com_docker_compose_service=\"dyndns\",image!=\"\"}[5m])) * 100",
           "legendFormat": "minecraft-dyndns"
         }
       ],
@@ -60,7 +60,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "sum(container_memory_usage_bytes{name=\"minecraft-dyndns\"}) / 1024 / 1024",
+          "expr": "sum(container_memory_usage_bytes{container_label_com_docker_compose_project=\"minecraft\",container_label_com_docker_compose_service=\"dyndns\",image!=\"\"}) / 1024 / 1024",
           "legendFormat": "minecraft-dyndns"
         }
       ],
@@ -72,7 +72,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
-          "expr": "increase(container_start_time_seconds{name=\"minecraft-dyndns\"}[15m])",
+          "expr": "sum(changes(container_start_time_seconds{container_label_com_docker_compose_project=\"minecraft\",container_label_com_docker_compose_service=\"dyndns\",image!=\"\"}[15m]))",
           "legendFormat": "minecraft-dyndns"
         }
       ],

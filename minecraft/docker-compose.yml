@@ -165,7 +165,7 @@ services:
     restart: unless-stopped
 
   file-metrics:
-    image: alpine:3.21
+    image: busybox:1.37.0
     container_name: minecraft-file-metrics
     command: >
       sh -ec '
@@ -192,7 +192,7 @@ services:
             > /www/metrics;
           sleep 30;
         done &
-        exec busybox httpd -f -p 9105 -h /www
+        exec httpd -f -p 9105 -h /www
       '
     volumes:
       - /home/mc/minecraft/backups:/backups:ro

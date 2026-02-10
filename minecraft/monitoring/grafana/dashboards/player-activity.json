@@ -61,13 +61,13 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count(sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) * 0)) > 0)",
+          "expr": "sum(((max by (player) (last_over_time({service=\"mc\"} |~ \"(joined|left) the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+(?P<event>joined|left) the game\" | label_format stamp=\"{{unixEpoch __timestamp__}}{{if eq .event \\\"joined\\\"}}1{{else}}0{{end}}\" | unwrap stamp [30d])) % 10) > bool 0))",
           "instant": true,
           "refId": "A"
         }
       ],
       "title": "Online now",
-      "description": "Number of players currently online based on joins minus leaves over the last 30 days.",
+      "description": "Number of players currently online based on each player's latest join/left event in the last 30 days.",
       "type": "stat"
     },
     {
@@ -232,13 +232,30 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) * 0)) > 0",
+          "expr": "((max by (player) (last_over_time({service=\"mc\"} |~ \"(joined|left) the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+(?P<event>joined|left) the game\" | label_format stamp=\"{{unixEpoch __timestamp__}}{{if eq .event \\\"joined\\\"}}1{{else}}0{{end}}\" | unwrap stamp [30d])) % 10) > 0)",
           "instant": true,
           "refId": "A"
         }
       ],
       "title": "Currently Online Players",
-      "description": "Players whose join count is greater than leave count over the last 30 days.",
+      "description": "Players currently online based on each player's latest join/left event in the last 30 days.",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true
+            },
+            "indexByName": {
+              "player": 0
+            },
+            "renameByName": {
+              "player": "Player"
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {

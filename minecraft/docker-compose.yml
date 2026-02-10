@@ -142,7 +142,7 @@ services:
     image: grafana/grafana:11.5.2
     container_name: minecraft-grafana
     environment:
-      GF_SERVER_ROOT_URL: "http://localhost:3000"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://boxli.local:3000}"
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}"
       GF_USERS_ALLOW_SIGN_UP: "false"
@@ -152,7 +152,7 @@ services:
       - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     restart: unless-stopped
 
   loki:

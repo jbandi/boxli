@@ -18,6 +18,68 @@
             "mode": "fixed",
             "fixedColor": "green"
           },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "count(sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"(?P<player>\\\\S+) left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) * 0)) > 0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Online now",
+      "description": "Number of players currently online based on joins minus leaves over the last 30 days.",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
@@ -108,84 +170,21 @@
             "inspect": false
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 200
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "event"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "joined": {
-                        "color": "green",
-                        "index": 0,
-                        "text": "joined"
-                      },
-                      "left": {
-                        "color": "red",
-                        "index": 1,
-                        "text": "left"
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "player"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 200
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 11
       },
       "id": 2,
       "options": {
         "showHeader": true,
         "sortBy": [
           {
-            "desc": true,
-            "displayName": "Time"
+            "desc": false,
+            "displayName": "Player"
           }
         ],
         "cellHeight": "sm"
@@ -196,12 +195,90 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service=\"mc\"} |~ \"(joined|left) the game\" | regexp \"(?P<player>\\\\S+) (?P<event>joined|left) the game\"",
+          "expr": "sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"(?P<player>\\\\S+) left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) * 0)) > 0",
+          "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Player Join/Leave Events",
-      "description": "Table of recent player join and leave events.",
+      "title": "Currently Online Players",
+      "description": "Players whose join count is greater than leave count over the last 30 days.",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Player"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last Login"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Last Login"
+          }
+        ],
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Last Logins By Player",
+      "description": "Most recent login timestamp for each distinct player in the selected time range.",
       "transformations": [
         {
           "id": "extractFields",
@@ -211,24 +288,40 @@
           }
         },
         {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "aggregations": [
+                  "max"
+                ],
+                "operation": "aggregate"
+              },
+              "player": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            }
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Body": true,
-              "id": true,
-              "tsNs": true,
-              "labels": true,
-              "Line": true,
-              "service": true
+              "Body (first)": true,
+              "Line (first)": true,
+              "id (first)": true,
+              "labels (first)": true,
+              "service (first)": true,
+              "tsNs (first)": true
             },
             "indexByName": {
-              "Time": 0,
-              "player": 1,
-              "event": 2
+              "player": 0,
+              "Time (max)": 1
             },
             "renameByName": {
               "player": "Player",
-              "event": "Event"
+              "Time (max)": "Last Login"
             }
           }
         }
@@ -244,7 +337,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 3,
       "options": {

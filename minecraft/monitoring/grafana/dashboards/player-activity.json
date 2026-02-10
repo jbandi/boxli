@@ -14,6 +14,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "displayName": "${__field.labels.player}",
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -60,7 +61,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count(sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"(?P<player>\\\\S+) left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) * 0)) > 0)",
+          "expr": "count(sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) * 0)) > 0)",
           "instant": true,
           "refId": "A"
         }
@@ -76,6 +77,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "displayName": "${__field.labels.player}",
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -130,7 +132,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service=\"mc\"} |~ \"(joined|left) the game\" | regexp \"(?P<player>\\\\S+) (?P<event>joined|left) the game\"",
+          "expr": "{service=\"mc\"} |~ \"(joined|left) the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+(?P<event>joined|left) the game\" | player!=\"\"",
           "legendFormat": "{{player}}",
           "refId": "A"
         }
@@ -146,10 +148,45 @@
           }
         },
         {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Body": true,
+              "Line": true,
+              "container_name": true,
+              "detected_level": true,
+              "id": true,
+              "labels": true,
+              "project": true,
+              "service": true,
+              "service_name": true,
+              "tsNs": true,
+              "__stream_shard__": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "player": 1,
+              "event": 2
+            },
+            "renameByName": {
+              "event": ""
+            }
+          }
+        },
+        {
           "id": "partitionByValues",
           "options": {
-            "fields": ["player"],
+            "fields": [
+              "player"
+            ],
             "keepFields": false
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^event[ .]+",
+            "renamePattern": ""
           }
         }
       ],
@@ -195,7 +232,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"(?P<player>\\\\S+) left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\" [30d])) * 0)) > 0",
+          "expr": "sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) - on(player) (sum by (player) (count_over_time({service=\"mc\"} |~ \"left the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+left the game\" [30d])) or (sum by (player) (count_over_time({service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\" [30d])) * 0)) > 0",
           "instant": true,
           "refId": "A"
         }
@@ -273,7 +310,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service=\"mc\"} |~ \"joined the game\" | regexp \"(?P<player>\\\\S+) joined the game\"",
+          "expr": "{service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\"",
           "refId": "A"
         }
       ],

@@ -400,6 +400,141 @@
       "title": "Player Activity Log",
       "description": "Raw log lines for player join/leave events.",
       "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Player"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Port"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 6,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Time"
+          }
+        ],
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service=\"mc\"} |~ \"lost connection: You are not whitelisted on this server!\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+\\\\(/(?P<ip>[^:]+):(?P<port>\\\\d+)\\\\)\\\\s+lost connection: You are not whitelisted on this server!\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Whitelist Rejections",
+      "description": "Players who attempted to connect but were disconnected because they are not whitelisted.",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "kvp"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Body": true,
+              "Line": true,
+              "container_name": true,
+              "detected_level": true,
+              "id": true,
+              "labels": true,
+              "project": true,
+              "service": true,
+              "service_name": true,
+              "tsNs": true,
+              "__stream_shard__": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "player": 1,
+              "ip": 2,
+              "port": 3
+            },
+            "renameByName": {
+              "player": "Player",
+              "ip": "IP",
+              "port": "Port"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "schemaVersion": 39,

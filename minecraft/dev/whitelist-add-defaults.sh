@@ -15,8 +15,9 @@ bedrock_players=(
   "00000000-0000-0000-0009-01F06C1D5DA2" # Illan nach lookup auf https://cxkes.me/xbox/xuid,
   "QuAKi2373" # Nuria
   "00000000-0000-0000-0009-01F7ADB28381" # Nuria nach lookup auf https://cxkes.me/xbox/xuid,
-  "RamGaming" #Ramon
-  "00000000-0000-0000-0009-0000044AD79D" # Ramon nach lookup auf https://cxkes.me/xbox/xuid,
+  ".RamGaming1409" #Ramon
+  "00000000-0000-0000-0009-01F9138FBC37" # Ramon nach lookup auf https://cxkes.me/xbox/xuid,
+  ".SkyLotus5056"
 )
 
 for player in "${bedrock_players[@]}"; do

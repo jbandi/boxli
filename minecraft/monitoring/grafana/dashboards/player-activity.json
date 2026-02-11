@@ -14,7 +14,6 @@
       },
       "fieldConfig": {
         "defaults": {
-          "displayName": "${__field.labels.player}",
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -35,8 +34,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 24,
+        "h": 8,
+        "w": 8,
         "x": 0,
         "y": 0
       },
@@ -53,7 +52,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name"
+        "textMode": "value"
       },
       "targets": [
         {
@@ -110,7 +109,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -211,9 +210,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 11
+        "w": 8,
+        "x": 8,
+        "y": 0
       },
       "id": 2,
       "options": {
@@ -306,9 +305,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 11
+        "w": 8,
+        "x": 16,
+        "y": 0
       },
       "id": 5,
       "options": {
@@ -391,7 +390,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 16
       },
       "id": 3,
       "options": {
@@ -488,7 +487,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 24
       },
       "id": 6,
       "options": {

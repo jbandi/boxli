@@ -38,9 +38,26 @@ discovery.relabel "containers" {
 loki.source.docker "containers" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.containers.output
-  forward_to = [loki.write.default.receiver]
+  forward_to = [loki.process.filter_noise.receiver]
 
   relabel_rules = discovery.relabel.containers.rules
+}
+
+// Drop known noisy plugin lines from Minecraft logs before ingestion.
+loki.process "filter_noise" {
+  forward_to = [loki.write.default.receiver]
+
+  stage.match {
+    selector = "{service=\"mc\"}"
+
+    stage.drop {
+      expression = "Found [0-9]+ matching item\\(s\\) on player"
+    }
+
+    stage.drop {
+      expression = "Thread RCON Client /.* (started|shutting down)"
+    }
+  }
 }
 
 // Push logs to Loki

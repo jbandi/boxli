@@ -406,6 +406,13 @@ services:
                 NAME_PRINT="$$NAME_TRIM"
               fi
               NAME_SHORT="$$(printf "%s" "$$NAME_PRINT" | cut -c1-6)"
+              NAME_LEN="$$(printf "%s" "$$NAME_SHORT" | wc -c | tr -d ' ')"
+              if [ "$$NAME_LEN" -lt 6 ]; then
+                PAD_TOTAL="$$((6 - NAME_LEN))"
+                PAD_LEFT="$$((PAD_TOTAL / 2))"
+                PAD_RIGHT="$$((PAD_TOTAL - PAD_LEFT))"
+                NAME_SHORT="$$(printf "%*s%s%*s" "$$PAD_LEFT" "" "$$NAME_SHORT" "$$PAD_RIGHT" "")"
+              fi
               TEXT="$${TEXT} $${NAME_SHORT} "
             done
             IFS="$$OLD_IFS"

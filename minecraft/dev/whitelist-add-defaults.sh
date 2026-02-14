@@ -2,10 +2,10 @@
 set -euo pipefail
 
 bedrock_players=(
-  ".Archenoa123" 
-  ".LoRabbit111"
-  ".tl5671"
-  ".Astronik123"
+  ".Archenoa123" # Aaron
+  ".LoRabbit111" # Lorin
+  ".tl5671" # Timon
+  ".Astronik123" # Nik
   ".ynbbb8" #Yaro
   ".KingNoelA" #Noel
   "00000000-0000-0000-0009-01F049831C0E" # Noel nach lookup auf https://cxkes.me/xbox/xuid
@@ -17,7 +17,11 @@ bedrock_players=(
   "00000000-0000-0000-0009-01F7ADB28381" # Nuria nach lookup auf https://cxkes.me/xbox/xuid,
   ".RamGaming1409" #Ramon
   "00000000-0000-0000-0009-01F9138FBC37" # Ramon nach lookup auf https://cxkes.me/xbox/xuid,
-  ".SkyLotus5056"
+  ".SkyLotus5056" # Nathan
+  "ELG4444837" # Emil
+  "00000000-0000-0000-0009-01FD308F2982" # ELG 4444837 nach lookup auf https://cxkes.me/xbox/xuid,
+  "GG Gamer 5633" # 
+  "00000000-0000-0000-0009-01FC582A1F47" # GG Gamer 5633 nach lookup auf https://cxkes.me/xbox/xuid,
 )
 
 for player in "${bedrock_players[@]}"; do

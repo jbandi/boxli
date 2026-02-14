@@ -1,0 +1,163 @@
+{
+  "id": null,
+  "uid": "mc-infrastructure",
+  "title": "Infrastructure",
+  "tags": ["minecraft", "infrastructure", "backup", "dyndns"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Latest Backup Timestamp",
+      "description": "Timestamp of the newest backup file found under /backups.",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "minecraft_backup_last_success_timestamp_seconds * 1000 and minecraft_backup_last_success_timestamp_seconds > 0",
+          "instant": true,
+          "range": false,
+          "legendFormat": "latest backup"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "noValue": "N/A",
+          "color": { "mode": "fixed", "fixedColor": "green" }
+        },
+        "overrides": []
+      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Backups (Size + Timestamp)",
+      "description": "All backup files currently present, with size in bytes and mtime epoch seconds.",
+      "gridPos": { "h": 11, "w": 16, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "minecraft_backup_file_info",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Timestamp (epoch)",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true,
+              "__name__": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "file": 0,
+              "size_bytes": 1,
+              "mtime_seconds": 2
+            },
+            "renameByName": {
+              "file": "Backup",
+              "size_bytes": "Size (bytes)",
+              "mtime_seconds": "Timestamp (epoch)"
+            }
+          }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Last DynDNS Check (Timestamp + Status)",
+      "description": "Latest DynDNS check result from the persisted Infomaniak response.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 5 },
+      "targets": [
+        {
+          "expr": "minecraft_dyndns_last_check_info",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true,
+              "__name__": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "timestamp_seconds": 0,
+              "status": 1
+            },
+            "renameByName": {
+              "timestamp_seconds": "Timestamp (epoch)",
+              "status": "Status"
+            }
+          }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Infomaniak DynDNS Requests",
+      "description": "All DynDNS update requests sent to Infomaniak.",
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 11 },
+      "targets": [
+        {
+          "expr": "{service=\"dyndns\"} |= \"sending to Infomaniak\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "datasource": { "type": "loki", "uid": "loki" }
+    }
+  ]
+}

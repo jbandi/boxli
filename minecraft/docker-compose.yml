@@ -227,6 +227,9 @@ services:
     command: >
       sh -ec '
         mkdir -p /www;
+        escape_label() {
+          printf "%s" "$$1" | tr "\n\r" "  " | sed -e "s/\\\\/\\\\\\\\/g" -e "s/\"/\\\\\"/g";
+        }
         while true; do
           NOW="$$(date +%s)";
           LATEST_BACKUP_FILE="$$(ls -1t /backups 2>/dev/null | head -n1 || true)";
@@ -240,26 +243,44 @@ services:
           DYNDNS_UPDATE_TS="$$(stat -c %Y /dyndns/last_infomaniak_ok 2>/dev/null || echo 0)";
           DYNDNS_RESP="$$(cat /dyndns/last_infomaniak_resp 2>/dev/null)";
           [ -z "$$DYNDNS_RESP" ] && DYNDNS_RESP="no update yet";
+          DYNDNS_IP_ESC="$$(escape_label "$$DYNDNS_IP")";
+          DYNDNS_RESP_ESC="$$(escape_label "$$DYNDNS_RESP")";
+          METRICS_TMP="/www/metrics.tmp";
           printf "%s\n" \
             "# HELP minecraft_backup_last_success_timestamp_seconds Unix timestamp of newest backup file." \
             "# TYPE minecraft_backup_last_success_timestamp_seconds gauge" \
             "minecraft_backup_last_success_timestamp_seconds $$BACKUP_TS" \
+            "# HELP minecraft_backup_file_info Backup files currently present on disk." \
+            "# TYPE minecraft_backup_file_info gauge" \
             "# HELP minecraft_dyndns_last_ip_mtime_seconds Unix timestamp of the dyndns last_ip state file." \
             "# TYPE minecraft_dyndns_last_ip_mtime_seconds gauge" \
             "minecraft_dyndns_last_ip_mtime_seconds $$DYNDNS_TS" \
             "# HELP minecraft_dyndns_ip_info Current public IP address." \
             "# TYPE minecraft_dyndns_ip_info gauge" \
-            "minecraft_dyndns_ip_info{ip=\"$$DYNDNS_IP\"} 1" \
+            "minecraft_dyndns_ip_info{ip=\"$$DYNDNS_IP_ESC\"} 1" \
             "# HELP minecraft_dyndns_last_infomaniak_update_seconds Unix timestamp of last successful Infomaniak DynDNS update." \
             "# TYPE minecraft_dyndns_last_infomaniak_update_seconds gauge" \
             "minecraft_dyndns_last_infomaniak_update_seconds $$DYNDNS_UPDATE_TS" \
             "# HELP minecraft_dyndns_infomaniak_response_info Last response from Infomaniak DynDNS API." \
             "# TYPE minecraft_dyndns_infomaniak_response_info gauge" \
-            "minecraft_dyndns_infomaniak_response_info{response=\"$$DYNDNS_RESP\"} 1" \
+            "minecraft_dyndns_infomaniak_response_info{response=\"$$DYNDNS_RESP_ESC\"} 1" \
+            "# HELP minecraft_dyndns_last_check_info Last DynDNS check status and timestamp." \
+            "# TYPE minecraft_dyndns_last_check_info gauge" \
+            "minecraft_dyndns_last_check_info{timestamp_seconds=\"$$DYNDNS_UPDATE_TS\",status=\"$$DYNDNS_RESP_ESC\"} 1" \
             "# HELP minecraft_file_metrics_scrape_generated_timestamp_seconds Unix timestamp when this metrics file was generated." \
             "# TYPE minecraft_file_metrics_scrape_generated_timestamp_seconds gauge" \
             "minecraft_file_metrics_scrape_generated_timestamp_seconds $$NOW" \
-            > /www/metrics;
+            > "$$METRICS_TMP";
+          for BACKUP_PATH in /backups/*; do
+            [ -f "$$BACKUP_PATH" ] || continue;
+            BACKUP_NAME="$${BACKUP_PATH##*/}";
+            BACKUP_NAME_ESC="$$(escape_label "$$BACKUP_NAME")";
+            BACKUP_SIZE="$$(stat -c %s "$$BACKUP_PATH" 2>/dev/null || echo 0)";
+            BACKUP_MTIME="$$(stat -c %Y "$$BACKUP_PATH" 2>/dev/null || echo 0)";
+            printf "minecraft_backup_file_info{file=\"%s\",size_bytes=\"%s\",mtime_seconds=\"%s\"} 1\n" \
+              "$$BACKUP_NAME_ESC" "$$BACKUP_SIZE" "$$BACKUP_MTIME" >> "$$METRICS_TMP";
+          done;
+          mv "$$METRICS_TMP" /www/metrics;
           sleep 30;
         done &
         exec httpd -f -p 9105 -h /www
@@ -290,6 +311,9 @@ services:
           TEXT="$$1"
           printf '{\n    "frames": [\n        {\n            "text": "%s",\n            "icon": 311\n        }\n    ]\n}\n' "$$TEXT" > /www/lametric
         }
+        normalize_name() {
+          printf "%s" "$$1" | sed 's/^[[:space:].]*//;s/[[:space:].]*$$//' | tr '[:upper:]' '[:lower:]'
+        }
         write_lametric "-- 0 --"
         while true; do
           RESP="$$(rcon-cli list 2>/dev/null || true)"
@@ -304,7 +328,24 @@ services:
             IFS=','
             for NAME in $$NAMES_RAW; do
               NAME_TRIM="$$(printf "%s" "$$NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')"
-              NAME_SHORT="$$(printf "%s" "$$NAME_TRIM" | cut -c1-6)"
+              NAME_MATCH="$$(normalize_name "$$NAME_TRIM")"
+              RESOLVED_NAME=""
+              if [ -f /players.csv ]; then
+                while IFS=',' read -r PLAYER_NAME REAL_NAME; do
+                  [ "$$PLAYER_NAME" = "player_name" ] && continue
+                  PLAYER_MATCH="$$(normalize_name "$$PLAYER_NAME")"
+                  if [ -n "$$PLAYER_MATCH" ] && printf "%s" "$$NAME_MATCH" | grep -Fq "$$PLAYER_MATCH"; then
+                    RESOLVED_NAME="$$(printf "%s" "$$REAL_NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')"
+                    break
+                  fi
+                done < /players.csv
+              fi
+              if [ -n "$$RESOLVED_NAME" ]; then
+                NAME_PRINT="$$RESOLVED_NAME"
+              else
+                NAME_PRINT="$$NAME_TRIM"
+              fi
+              NAME_SHORT="$$(printf "%s" "$$NAME_PRINT" | cut -c1-6)"
               TEXT="$${TEXT} $${NAME_SHORT} "
             done
             IFS="$$OLD_IFS"
@@ -314,6 +355,7 @@ services:
         done
     volumes:
       - /home/mc/minecraft/boxli-www:/www
+      - /home/mc/minecraft/players.csv:/players.csv:ro
     restart: unless-stopped
 
   boxli-http:

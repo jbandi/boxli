@@ -35,6 +35,8 @@
 - Keep docs in sync when workflow or script behavior changes.
 
 ## Grafana Verification (Playwright MCP)
+- Before testing Grafana dashboard changes, redeploy first:
+- `./dev/deploy.sh --apply`
 - When changing Grafana dashboards, verify the result via Playwright MCP before reporting completion.
 - Open: `http://boxli.local:3000/`
 - Login credentials for Grafana:

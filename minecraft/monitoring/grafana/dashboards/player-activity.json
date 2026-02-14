@@ -388,7 +388,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 16
       },
@@ -413,7 +413,7 @@
           "refId": "A"
         }
       ],
-      "title": "Player Activity Log",
+      "title": "Login Logs",
       "description": "Raw log lines for player join/leave events.",
       "type": "logs"
     },
@@ -485,9 +485,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 24
+        "w": 12,
+        "x": 12,
+        "y": 16
       },
       "id": 6,
       "options": {

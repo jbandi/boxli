@@ -87,15 +87,27 @@ services:
     command: >
       sh -ec '
         log() { echo "[`date +"%Y-%m-%d %H:%M:%S %Z"`] $$*"; }
+        get_ipv4() { curl -4 -fsS --max-time 10 https://api.ipify.org; }
+        get_ipv6() { curl -6 -fsS --max-time 10 https://api64.ipify.org 2>/dev/null || true; }
         update_infomaniak() {
-          IP="$$(curl -4 -fsS --max-time 10 https://api.ipify.org 2>&1)" || { log "ERROR  ip-check failed: $$IP"; return 1; }
-          if [ -z "$$IP" ]; then log "WARN   ip-check returned empty response"; return 1; fi
-          log "UPDATE ip=$$IP, sending to Infomaniak..."
+          IPV4="$$(get_ipv4 2>&1)" || { log "ERROR  ip-check failed: $$IPV4"; return 1; }
+          IPV6="$$(get_ipv6)"
+          if [ -z "$$IPV4" ]; then log "WARN   ip-check returned empty response"; return 1; fi
+          log "UPDATE ip=$$IPV4, sending to Infomaniak..."
+          touch /state/last_infomaniak_request || log "WARN   could not persist request timestamp"
           HTTP_CODE="$$(curl -4 -sS --max-time 10 -o /tmp/dyndns_resp -w "%%{http_code}" -u "$$DYNDNS_USER:$$DYNDNS_PASS" "https://infomaniak.com/nic/update?hostname=$$DYNDNS_HOST" 2>&1)" || { log "ERROR  update request failed: $$HTTP_CODE"; return 1; }
           RESP="$$(cat /tmp/dyndns_resp)"
+          PREV_RESP="$$(cat /state/last_infomaniak_resp 2>/dev/null || true)"
+          [ -n "$$PREV_RESP" ] && echo "$$PREV_RESP" > /state/last_infomaniak_prev_resp || true
           echo "$$RESP" > /state/last_infomaniak_resp || log "WARN   could not persist response"
           if echo "$$RESP" | grep -Eq "good|nochg"; then
-            echo "$$IP" > /state/last_ip || log "WARN   could not persist ip to /state/last_ip"
+            echo "$$IPV4" > /state/last_ip || log "WARN   could not persist ip to /state/last_ip"
+            echo "$$IPV4" > /state/last_ipv4 || log "WARN   could not persist IPv4 to /state/last_ipv4"
+            if [ -n "$$IPV6" ]; then
+              echo "$$IPV6" > /state/last_ipv6 || log "WARN   could not persist IPv6 to /state/last_ipv6"
+            else
+              : > /state/last_ipv6 || log "WARN   could not clear /state/last_ipv6"
+            fi
             touch /state/last_infomaniak_ok || log "WARN   could not persist update timestamp"
             log "OK     update success – response=\"$$RESP\" http=$$HTTP_CODE"
           else
@@ -108,14 +120,21 @@ services:
         log "INIT   performing initial Infomaniak update..."
         update_infomaniak || log "WARN   initial update failed, will retry in loop"
         while true; do
-          IP="$$(curl -4 -fsS --max-time 10 https://api.ipify.org 2>&1)" || { log "ERROR  ip-check failed: $$IP"; sleep "$$CHECK_INTERVAL"; continue; }
-          LAST="$$(cat /state/last_ip 2>/dev/null || true)"
-          if [ -z "$$IP" ]; then
-            log "WARN   ip-check returned empty response"
-          elif [ "$$IP" = "$$LAST" ]; then
-            log "OK     ip=$$IP (unchanged)"
+          IPV4="$$(get_ipv4 2>&1)" || { log "ERROR  ip-check failed: $$IPV4"; sleep "$$CHECK_INTERVAL"; continue; }
+          IPV6="$$(get_ipv6)"
+          echo "$$IPV4" > /state/last_ipv4 || log "WARN   could not persist IPv4 to /state/last_ipv4"
+          if [ -n "$$IPV6" ]; then
+            echo "$$IPV6" > /state/last_ipv6 || log "WARN   could not persist IPv6 to /state/last_ipv6"
           else
-            log "CHANGE ip=$$IP (was $${LAST:-<none>}), updating Infomaniak..."
+            : > /state/last_ipv6 || log "WARN   could not clear /state/last_ipv6"
+          fi
+          LAST="$$(cat /state/last_ip 2>/dev/null || true)"
+          if [ -z "$$IPV4" ]; then
+            log "WARN   ip-check returned empty response"
+          elif [ "$$IPV4" = "$$LAST" ]; then
+            log "OK     ip=$$IPV4 (unchanged)"
+          else
+            log "CHANGE ip=$$IPV4 (was $${LAST:-<none>}), updating Infomaniak..."
             update_infomaniak || log "WARN   update failed, will retry next cycle"
           fi
           sleep "$$CHECK_INTERVAL"
@@ -239,12 +258,28 @@ services:
             BACKUP_TS="0";
           fi;
           DYNDNS_TS="$$(stat -c %Y /dyndns/last_ip 2>/dev/null || echo 0)";
-          DYNDNS_IP="$$(cat /dyndns/last_ip 2>/dev/null || echo '')";
+          DYNDNS_IPV4="$$(cat /dyndns/last_ipv4 2>/dev/null || cat /dyndns/last_ip 2>/dev/null || echo '')";
+          DYNDNS_IPV6="$$(cat /dyndns/last_ipv6 2>/dev/null || echo '')";
+          [ -z "$$DYNDNS_IPV4" ] && DYNDNS_IPV4="n/a";
+          [ -z "$$DYNDNS_IPV6" ] && DYNDNS_IPV6="n/a";
+          DYNDNS_IP="$$DYNDNS_IPV4";
           DYNDNS_UPDATE_TS="$$(stat -c %Y /dyndns/last_infomaniak_ok 2>/dev/null || echo 0)";
+          DYNDNS_REQ_TS="$$(stat -c %Y /dyndns/last_infomaniak_request 2>/dev/null || echo 0)";
           DYNDNS_RESP="$$(cat /dyndns/last_infomaniak_resp 2>/dev/null)";
+          DYNDNS_PREV_RESP="$$(cat /dyndns/last_infomaniak_prev_resp 2>/dev/null || echo '')";
           [ -z "$$DYNDNS_RESP" ] && DYNDNS_RESP="no update yet";
+          [ -z "$$DYNDNS_PREV_RESP" ] && DYNDNS_PREV_RESP="n/a";
+          if [ "$$DYNDNS_REQ_TS" -gt 0 ] 2>/dev/null; then
+            DYNDNS_REQ_HUMAN="$$(date -u -d "@$$DYNDNS_REQ_TS" "+%Y-%m-%d %H:%M:%S UTC" 2>/dev/null || echo "$$DYNDNS_REQ_TS")";
+          else
+            DYNDNS_REQ_HUMAN="n/a";
+          fi;
           DYNDNS_IP_ESC="$$(escape_label "$$DYNDNS_IP")";
+          DYNDNS_IPV4_ESC="$$(escape_label "$$DYNDNS_IPV4")";
+          DYNDNS_IPV6_ESC="$$(escape_label "$$DYNDNS_IPV6")";
           DYNDNS_RESP_ESC="$$(escape_label "$$DYNDNS_RESP")";
+          DYNDNS_PREV_RESP_ESC="$$(escape_label "$$DYNDNS_PREV_RESP")";
+          DYNDNS_REQ_HUMAN_ESC="$$(escape_label "$$DYNDNS_REQ_HUMAN")";
           METRICS_TMP="/www/metrics.tmp";
           printf "%s\n" \
             "# HELP minecraft_backup_last_success_timestamp_seconds Unix timestamp of newest backup file." \
@@ -252,21 +287,40 @@ services:
             "minecraft_backup_last_success_timestamp_seconds $$BACKUP_TS" \
             "# HELP minecraft_backup_file_info Backup files currently present on disk." \
             "# TYPE minecraft_backup_file_info gauge" \
+            "# HELP minecraft_backup_file_size_bytes Backup file size in bytes." \
+            "# TYPE minecraft_backup_file_size_bytes gauge" \
+            "# HELP minecraft_backup_file_mtime_seconds Backup file mtime as unix timestamp in seconds." \
+            "# TYPE minecraft_backup_file_mtime_seconds gauge" \
             "# HELP minecraft_dyndns_last_ip_mtime_seconds Unix timestamp of the dyndns last_ip state file." \
             "# TYPE minecraft_dyndns_last_ip_mtime_seconds gauge" \
             "minecraft_dyndns_last_ip_mtime_seconds $$DYNDNS_TS" \
             "# HELP minecraft_dyndns_ip_info Current public IP address." \
             "# TYPE minecraft_dyndns_ip_info gauge" \
             "minecraft_dyndns_ip_info{ip=\"$$DYNDNS_IP_ESC\"} 1" \
+            "# HELP minecraft_dyndns_ipv4_info Current public IPv4 address." \
+            "# TYPE minecraft_dyndns_ipv4_info gauge" \
+            "minecraft_dyndns_ipv4_info{ip=\"$$DYNDNS_IPV4_ESC\"} 1" \
+            "# HELP minecraft_dyndns_ipv6_info Current public IPv6 address." \
+            "# TYPE minecraft_dyndns_ipv6_info gauge" \
+            "minecraft_dyndns_ipv6_info{ip=\"$$DYNDNS_IPV6_ESC\"} 1" \
             "# HELP minecraft_dyndns_last_infomaniak_update_seconds Unix timestamp of last successful Infomaniak DynDNS update." \
             "# TYPE minecraft_dyndns_last_infomaniak_update_seconds gauge" \
             "minecraft_dyndns_last_infomaniak_update_seconds $$DYNDNS_UPDATE_TS" \
+            "# HELP minecraft_dyndns_last_infomaniak_request_seconds Unix timestamp of latest Infomaniak DynDNS request attempt." \
+            "# TYPE minecraft_dyndns_last_infomaniak_request_seconds gauge" \
+            "minecraft_dyndns_last_infomaniak_request_seconds $$DYNDNS_REQ_TS" \
             "# HELP minecraft_dyndns_infomaniak_response_info Last response from Infomaniak DynDNS API." \
             "# TYPE minecraft_dyndns_infomaniak_response_info gauge" \
             "minecraft_dyndns_infomaniak_response_info{response=\"$$DYNDNS_RESP_ESC\"} 1" \
+            "# HELP minecraft_dyndns_prev_infomaniak_response_info Second latest response from Infomaniak DynDNS API." \
+            "# TYPE minecraft_dyndns_prev_infomaniak_response_info gauge" \
+            "minecraft_dyndns_prev_infomaniak_response_info{response=\"$$DYNDNS_PREV_RESP_ESC\"} 1" \
             "# HELP minecraft_dyndns_last_check_info Last DynDNS check status and timestamp." \
             "# TYPE minecraft_dyndns_last_check_info gauge" \
-            "minecraft_dyndns_last_check_info{timestamp_seconds=\"$$DYNDNS_UPDATE_TS\",status=\"$$DYNDNS_RESP_ESC\"} 1" \
+            "minecraft_dyndns_last_check_info{timestamp_seconds=\"$$DYNDNS_UPDATE_TS\",status=\"$$DYNDNS_RESP_ESC\",ipv4=\"$$DYNDNS_IPV4_ESC\",ipv6=\"$$DYNDNS_IPV6_ESC\"} 1" \
+            "# HELP minecraft_dyndns_last_request_panel_info Labels for Last DynDNS panel (latest request timestamp and previous status)." \
+            "# TYPE minecraft_dyndns_last_request_panel_info gauge" \
+            "minecraft_dyndns_last_request_panel_info{timestamp=\"$$DYNDNS_REQ_HUMAN_ESC\",previous_status=\"$$DYNDNS_PREV_RESP_ESC\"} 1" \
             "# HELP minecraft_file_metrics_scrape_generated_timestamp_seconds Unix timestamp when this metrics file was generated." \
             "# TYPE minecraft_file_metrics_scrape_generated_timestamp_seconds gauge" \
             "minecraft_file_metrics_scrape_generated_timestamp_seconds $$NOW" \
@@ -279,6 +333,10 @@ services:
             BACKUP_MTIME="$$(stat -c %Y "$$BACKUP_PATH" 2>/dev/null || echo 0)";
             printf "minecraft_backup_file_info{file=\"%s\",size_bytes=\"%s\",mtime_seconds=\"%s\"} 1\n" \
               "$$BACKUP_NAME_ESC" "$$BACKUP_SIZE" "$$BACKUP_MTIME" >> "$$METRICS_TMP";
+            printf "minecraft_backup_file_size_bytes{file=\"%s\"} %s\n" \
+              "$$BACKUP_NAME_ESC" "$$BACKUP_SIZE" >> "$$METRICS_TMP";
+            printf "minecraft_backup_file_mtime_seconds{file=\"%s\"} %s\n" \
+              "$$BACKUP_NAME_ESC" "$$BACKUP_MTIME" >> "$$METRICS_TMP";
           done;
           mv "$$METRICS_TMP" /www/metrics;
           sleep 30;

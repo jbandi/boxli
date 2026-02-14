@@ -12,18 +12,27 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Latest Backup Timestamp",
-      "description": "Timestamp of the newest backup file found under /backups.",
-      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "title": "Latest Backup",
+      "description": "Timestamp of the newest backup and currently available disk space on Boxli.",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 0 },
       "targets": [
         {
           "expr": "minecraft_backup_last_success_timestamp_seconds * 1000 and minecraft_backup_last_success_timestamp_seconds > 0",
           "instant": true,
           "range": false,
-          "legendFormat": "latest backup"
+          "legendFormat": "Latest backup",
+          "refId": "A"
+        },
+        {
+          "expr": "max(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})",
+          "instant": true,
+          "range": false,
+          "legendFormat": "Free disk",
+          "refId": "B"
         }
       ],
       "options": {
+        "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
         "reduceOptions": {
@@ -33,11 +42,35 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "dateTimeAsIso",
           "noValue": "N/A",
           "color": { "mode": "fixed", "fixedColor": "green" }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Latest backup"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Free disk"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          }
+        ]
       },
       "datasource": { "type": "prometheus", "uid": "prometheus" }
     },
@@ -45,15 +78,22 @@
       "id": 2,
       "type": "table",
       "title": "Backups (Size + Timestamp)",
-      "description": "All backup files currently present, with size in bytes and mtime epoch seconds.",
-      "gridPos": { "h": 11, "w": 16, "x": 8, "y": 0 },
+      "description": "All backup files currently present, with size in MB and formatted timestamp.",
+      "gridPos": { "h": 16, "w": 12, "x": 12, "y": 5 },
       "targets": [
         {
-          "expr": "minecraft_backup_file_info",
+          "expr": "minecraft_backup_file_size_bytes / 1024 / 1024",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "A"
+        },
+        {
+          "expr": "minecraft_backup_file_mtime_seconds * 1000",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
         }
       ],
       "options": {
@@ -61,31 +101,82 @@
         "cellHeight": "sm",
         "sortBy": [
           {
-            "displayName": "Timestamp (epoch)",
+            "displayName": "Timestamp",
             "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Size (MB)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mbytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Timestamp"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
           }
         ]
       },
       "transformations": [
         {
+          "id": "joinByField",
+          "options": {
+            "byField": "file",
+            "mode": "outer"
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value #A": true,
+              "Time 1": true,
+              "Value": true,
+              "file 1": true,
+              "__name__ 1": true,
               "__name__": true,
               "instance": true,
               "job": true
             },
             "indexByName": {
               "file": 0,
-              "size_bytes": 1,
-              "mtime_seconds": 2
+              "Value #B": 1,
+              "Value #A": 2
             },
             "renameByName": {
               "file": "Backup",
-              "size_bytes": "Size (bytes)",
-              "mtime_seconds": "Timestamp (epoch)"
+              "Value #A": "Size (MB)",
+              "Value #B": "Timestamp"
             }
           }
         }
@@ -95,12 +186,12 @@
     {
       "id": 3,
       "type": "table",
-      "title": "Last DynDNS Check (Timestamp + Status)",
-      "description": "Latest DynDNS check result from the persisted Infomaniak response.",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 5 },
+      "title": "Last DynDNS Check",
+      "description": "Current public IPv4 and IPv6 addresses.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "minecraft_dyndns_last_check_info",
+          "expr": "sum by (entry) (label_replace(topk(1, timestamp(minecraft_dyndns_last_check_info{ipv4=~\".+\"})), \"entry\", \"$1\", \"ipv4\", \"(.*)\") or label_replace(topk(1, timestamp(minecraft_dyndns_last_check_info{ipv4=~\".+\"})), \"entry\", \"$1\", \"ipv6\", \"(.*)\"))",
           "format": "table",
           "instant": true,
           "range": false,
@@ -108,8 +199,18 @@
         }
       ],
       "options": {
-        "showHeader": true,
+        "showHeader": false,
         "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          }
+        },
+        "overrides": []
       },
       "transformations": [
         {
@@ -117,18 +218,77 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value #A": true,
+              "Value": true,
               "__name__": true,
               "instance": true,
-              "job": true
+              "job": true,
+              "status": true,
+              "timestamp": true,
+              "ipv4": true,
+              "ipv6": true,
+              "previous_status": true
             },
             "indexByName": {
-              "timestamp_seconds": 0,
-              "status": 1
+              "entry": 0
             },
             "renameByName": {
-              "timestamp_seconds": "Timestamp (epoch)",
-              "status": "Status"
+              "entry": "Value"
+            }
+          }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Last DynDNS Request",
+      "description": "Latest request timestamp and second last request status.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (entry) (label_replace(topk(1, timestamp(minecraft_dyndns_last_request_panel_info)), \"entry\", \"$1\", \"timestamp\", \"(.*)\") or label_replace(topk(1, timestamp(minecraft_dyndns_last_request_panel_info)), \"entry\", \"$1\", \"previous_status\", \"(.*)\"))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": false,
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "status": true,
+              "timestamp": true,
+              "ipv4": true,
+              "ipv6": true,
+              "previous_status": true
+            },
+            "indexByName": {
+              "entry": 0
+            },
+            "renameByName": {
+              "entry": "Value"
             }
           }
         }
@@ -140,7 +300,7 @@
       "type": "logs",
       "title": "Infomaniak DynDNS Requests",
       "description": "All DynDNS update requests sent to Infomaniak.",
-      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 11 },
+      "gridPos": { "h": 16, "w": 12, "x": 0, "y": 5 },
       "targets": [
         {
           "expr": "{service=\"dyndns\"} |= \"sending to Infomaniak\"",

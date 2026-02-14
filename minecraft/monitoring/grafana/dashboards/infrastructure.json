@@ -298,12 +298,12 @@
     {
       "id": 4,
       "type": "logs",
-      "title": "Infomaniak DynDNS Requests",
-      "description": "All DynDNS update requests sent to Infomaniak.",
+      "title": "DynDNS Logs",
+      "description": "All log entries from the dyndns container.",
       "gridPos": { "h": 16, "w": 12, "x": 0, "y": 5 },
       "targets": [
         {
-          "expr": "{service=\"dyndns\"} |= \"sending to Infomaniak\"",
+          "expr": "{service=\"dyndns\"}",
           "refId": "A"
         }
       ],
@@ -313,9 +313,9 @@
         "prettifyLogMessage": false,
         "showCommonLabels": false,
         "showLabels": false,
-        "showTime": true,
+        "showTime": false,
         "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "wrapLogMessage": false
       },
       "datasource": { "type": "loki", "uid": "loki" }
     }

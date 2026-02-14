@@ -33,3 +33,11 @@
 - If scripts changed, check executable intent and shell compatibility.
 - Highlight any required manual follow-up (e.g., rotated secrets, restart, first-time plugin download).
 - Keep docs in sync when workflow or script behavior changes.
+
+## Grafana Verification (Playwright MCP)
+- When changing Grafana dashboards, verify the result via Playwright MCP before reporting completion.
+- Open: `http://boxli.local:3000/`
+- Login credentials for Grafana:
+- Username: `admin`
+- Password: `2938`
+- Verify the expected panel titles, layout, and values are visible in the rendered dashboard.

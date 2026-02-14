@@ -34,6 +34,12 @@ discovery.relabel "containers" {
   }
 }
 
+// Load player activity filter fragments from external JSON so the deny-list
+// can be extended without editing the Alloy pipeline logic.
+local.file "player_activity_filters" {
+  filename = "/etc/alloy/player-activity-filters.json"
+}
+
 // Collect logs from discovered containers
 loki.source.docker "containers" {
   host       = "unix:///var/run/docker.sock"
@@ -56,6 +62,32 @@ loki.process "filter_noise" {
 
     stage.drop {
       expression = "Thread RCON Client /.* (started|shutting down)"
+    }
+  }
+
+  // Tag gameplay-focused lines for the Player Activity panel.
+  // This preserves raw logs while moving heavy filtering to ingest time.
+  stage.match {
+    selector = "{service=\"mc\"} !~ " +
+      string.format(
+        "%q",
+        "(?i)(" + string.join(encoding.from_json(local.file.player_activity_filters.content)["technical_noise"], "|") + ")",
+      ) +
+      " !~ " +
+      string.format(
+        "%q",
+        "(?i)(" + string.join(encoding.from_json(local.file.player_activity_filters.content)["stacktrace_noise"], "|") + ")",
+      ) +
+      " !~ " +
+      string.format(
+        "%q",
+        "(?i)(" + string.join(encoding.from_json(local.file.player_activity_filters.content)["session_churn_noise"], "|") + ")",
+      )
+
+    stage.static_labels {
+      values = {
+        activity = "player",
+      }
     }
   }
 }

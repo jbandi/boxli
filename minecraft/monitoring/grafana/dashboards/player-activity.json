@@ -300,6 +300,18 @@
                 "value": "dateTimeAsIso"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
           }
         ]
       },
@@ -326,12 +338,12 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service=\"mc\"} |~ \"joined the game\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\s+joined the game\"",
+          "expr": "{service=\"mc\"} |~ \"logged in with entity id\" | regexp \"INFO\\\\]:\\\\s+(?P<player>\\\\S+)\\\\[/(?P<ip>.+):\\\\d+\\\\]\\\\s+logged in with entity id\"",
           "refId": "A"
         }
       ],
       "title": "Last Logins By Player",
-      "description": "Most recent login timestamp for each distinct player in the selected time range.",
+      "description": "Most recent login timestamp and source IP for each distinct player in the selected time range.",
       "transformations": [
         {
           "id": "extractFields",
@@ -341,12 +353,30 @@
           }
         },
         {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
           "id": "groupBy",
           "options": {
             "fields": {
               "Time": {
                 "aggregations": [
                   "max"
+                ],
+                "operation": "aggregate"
+              },
+              "ip": {
+                "aggregations": [
+                  "first"
                 ],
                 "operation": "aggregate"
               },
@@ -370,11 +400,13 @@
             },
             "indexByName": {
               "player": 0,
-              "Time (max)": 1
+              "Time (max)": 1,
+              "ip (first)": 2
             },
             "renameByName": {
               "player": "Player",
-              "Time (max)": "Last Login"
+              "Time (max)": "Last Login",
+              "ip (first)": "IP"
             }
           }
         }

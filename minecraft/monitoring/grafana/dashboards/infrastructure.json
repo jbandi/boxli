@@ -318,6 +318,30 @@
         "wrapLogMessage": false
       },
       "datasource": { "type": "loki", "uid": "loki" }
+    },
+    {
+      "id": 6,
+      "type": "logs",
+      "title": "Backup Logs",
+      "description": "All log entries from the minecraft-backup container.",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 21 },
+      "targets": [
+        {
+          "expr": "{service=\"backup\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "datasource": { "type": "loki", "uid": "loki" }
     }
   ]
 }

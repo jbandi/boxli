@@ -269,6 +269,64 @@ services:
       - /home/mc/minecraft/dyndns:/dyndns:ro
     restart: unless-stopped
 
+  lametric-writer:
+    image: itzg/mc-backup:latest
+    container_name: minecraft-lametric-writer
+    user: "1001:1001"
+    depends_on:
+      - mc
+    entrypoint:
+      - /bin/sh
+      - -ec
+    environment:
+      RCON_HOST: "mc"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "${MC_RCON_PASSWORD}"
+      LAMETRIC_REFRESH_SECONDS: "20"
+    command:
+      - |
+        mkdir -p /www
+        write_lametric() {
+          TEXT="$$1"
+          printf '{\n    "frames": [\n        {\n            "text": "%s",\n            "icon": 311\n        }\n    ]\n}\n' "$$TEXT" > /www/lametric
+        }
+        write_lametric "-- 0 --"
+        while true; do
+          RESP="$$(rcon-cli list 2>/dev/null || true)"
+          COUNT="$$(printf "%s\n" "$$RESP" | sed -n "s/.*There are \\([0-9][0-9]*\\) of a max.*/\\1/p" | head -n1)"
+          NAMES_RAW="$$(printf "%s\n" "$$RESP" | sed -n "s/.*players online:[[:space:]]*//p" | head -n1)"
+          case "$$COUNT" in
+            ""|*[!0-9]*) COUNT="0" ;;
+          esac
+          TEXT="-- $$COUNT --"
+          if [ "$$COUNT" -gt 0 ] && [ -n "$$NAMES_RAW" ]; then
+            OLD_IFS="$$IFS"
+            IFS=','
+            for NAME in $$NAMES_RAW; do
+              NAME_TRIM="$$(printf "%s" "$$NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$$//')"
+              NAME_SHORT="$$(printf "%s" "$$NAME_TRIM" | cut -c1-6)"
+              TEXT="$${TEXT} $${NAME_SHORT} "
+            done
+            IFS="$$OLD_IFS"
+          fi
+          write_lametric "$$TEXT"
+          sleep "$${LAMETRIC_REFRESH_SECONDS}"
+        done
+    volumes:
+      - /home/mc/minecraft/boxli-www:/www
+    restart: unless-stopped
+
+  boxli-http:
+    image: nginx:1.27-alpine
+    container_name: minecraft-boxli-http
+    depends_on:
+      - lametric-writer
+    volumes:
+      - /home/mc/minecraft/boxli-www:/usr/share/nginx/html:ro
+    ports:
+      - "18088:80"
+    restart: unless-stopped
+
 volumes:
   prometheus_data:
   grafana_data:

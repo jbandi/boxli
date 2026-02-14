@@ -40,13 +40,14 @@ RSYNC_SCOPE_ARGS=(
   --exclude='logs/'
   --exclude='backups/'
   --exclude='dyndns/'
+  --exclude='boxli-www/'
 )
 
-SERVICES="backup dyndns prometheus grafana loki alloy node-exporter cadvisor blackbox-exporter file-metrics"
+SERVICES="backup dyndns prometheus grafana loki alloy node-exporter cadvisor blackbox-exporter file-metrics lametric-writer boxli-http"
 if [[ "${RESTART_MC}" == "true" ]]; then
   SERVICES="mc ${SERVICES}"
 fi
-REMOTE_CMD="mkdir -p ${DEST}/dyndns && cd ${DEST} && docker compose pull ${SERVICES} && docker compose up -d --no-deps --force-recreate ${SERVICES}"
+REMOTE_CMD="mkdir -p ${DEST}/dyndns ${DEST}/boxli-www && touch ${DEST}/boxli-www/lametric && chmod 666 ${DEST}/boxli-www/lametric && cd ${DEST} && docker compose pull ${SERVICES} && docker compose up -d --no-deps --force-recreate --remove-orphans ${SERVICES}"
 
 rsync -avz --delete \
   ${RSYNC_DRY_RUN_FLAG} \

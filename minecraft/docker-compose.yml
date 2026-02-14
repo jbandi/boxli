@@ -368,13 +368,35 @@ services:
       - |
         mkdir -p /www
         write_lametric() {
-          TEXT="$$1"
-          printf '{\n    "frames": [\n        {\n            "text": "%s",\n            "icon": 311\n        }\n    ]\n}\n' "$$TEXT" > /www/lametric
+          printf '{\n    "frames": [\n%s\n    ]\n}\n' "$$FRAMES" > /www/lametric
+        }
+        add_frame() {
+          FRAME_TEXT="$$1"
+          FRAME_ICON="$$2"
+          FRAME_JSON="$$(printf '        {\n            "text": "%s",\n            "icon": %s\n        }' "$$FRAME_TEXT" "$$FRAME_ICON")"
+          if [ -n "$$FRAMES" ]; then
+            FRAMES="$$(printf '%s,\n%s' "$$FRAMES" "$$FRAME_JSON")"
+          else
+            FRAMES="$$FRAME_JSON"
+          fi
+        }
+        pad_center_7() {
+          NAME_SHORT="$$(printf "%s" "$$1" | cut -c1-7)"
+          NAME_LEN="$$(printf "%s" "$$NAME_SHORT" | wc -c | tr -d ' ')"
+          if [ "$$NAME_LEN" -lt 7 ]; then
+            PAD_TOTAL="$$((7 - NAME_LEN))"
+            PAD_LEFT="$$(((PAD_TOTAL + 1) / 2))"
+            PAD_RIGHT="$$((PAD_TOTAL - PAD_LEFT))"
+            NAME_SHORT="$$(printf "%*s%s%*s" "$$PAD_LEFT" "" "$$NAME_SHORT" "$$PAD_RIGHT" "")"
+          fi
+          printf "%s" "$$NAME_SHORT"
         }
         normalize_name() {
           printf "%s" "$$1" | sed 's/^[[:space:].]*//;s/[[:space:].]*$$//' | tr '[:upper:]' '[:lower:]'
         }
-        write_lametric "-- 0 --"
+        FRAMES=""
+        add_frame "-- 0 --" 311
+        write_lametric
         while true; do
           RESP="$$(rcon-cli list 2>/dev/null || true)"
           COUNT="$$(printf "%s\n" "$$RESP" | sed -n "s/.*There are \\([0-9][0-9]*\\) of a max.*/\\1/p" | head -n1)"
@@ -382,7 +404,8 @@ services:
           case "$$COUNT" in
             ""|*[!0-9]*) COUNT="0" ;;
           esac
-          TEXT="-- $$COUNT --"
+          FRAMES=""
+          add_frame "-- $$COUNT --" 311
           if [ "$$COUNT" -gt 0 ] && [ -n "$$NAMES_RAW" ]; then
             OLD_IFS="$$IFS"
             IFS=','
@@ -405,19 +428,12 @@ services:
               else
                 NAME_PRINT="$$NAME_TRIM"
               fi
-              NAME_SHORT="$$(printf "%s" "$$NAME_PRINT" | cut -c1-6)"
-              NAME_LEN="$$(printf "%s" "$$NAME_SHORT" | wc -c | tr -d ' ')"
-              if [ "$$NAME_LEN" -lt 6 ]; then
-                PAD_TOTAL="$$((6 - NAME_LEN))"
-                PAD_LEFT="$$((PAD_TOTAL / 2))"
-                PAD_RIGHT="$$((PAD_TOTAL - PAD_LEFT))"
-                NAME_SHORT="$$(printf "%*s%s%*s" "$$PAD_LEFT" "" "$$NAME_SHORT" "$$PAD_RIGHT" "")"
-              fi
-              TEXT="$${TEXT} $${NAME_SHORT} "
+              NAME_SHORT="$$(pad_center_7 "$$NAME_PRINT")"
+              add_frame "$$NAME_SHORT" 2762
             done
             IFS="$$OLD_IFS"
           fi
-          write_lametric "$$TEXT"
+          write_lametric
           sleep "$${LAMETRIC_REFRESH_SECONDS}"
         done
     volumes:

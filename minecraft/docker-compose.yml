@@ -76,6 +76,7 @@ services:
     image: curlimages/curl:8.12.1
     container_name: minecraft-dyndns
     user: "1001:1001"
+    network_mode: "host"
     environment:
       TZ: "Europe/Zurich"
       DYNDNS_HOST: "${DYNDNS_HOST}"

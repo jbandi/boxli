@@ -186,7 +186,7 @@
     {
       "id": 3,
       "type": "table",
-      "title": "Last DynDNS Check",
+      "title": "Public IP",
       "description": "Current public IPv4 and IPv6 addresses.",
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "targets": [

@@ -391,6 +391,32 @@ services:
           fi
           printf "%s" "$$NAME_SHORT"
         }
+        pick_random_player_icon() {
+          ICONS="2762 1624 87 5610 178 6219 6215 77 2772 25861 3971 24443 6913 22993 1769 6916 661 5582 5038 7947 2766 12491 11223 4793 4383 1754 8089 19077 2583 17988 5869 7136 14489 15489 5652 16822 15270 5870 21326 36486 6436 10266 5777 2035 45850 4139 6870 19626 6710"
+          ICON_IFS_BACKUP="$$IFS"
+          IFS=' '
+          set -- $$ICONS
+          IFS="$$ICON_IFS_BACKUP"
+          ICON_COUNT="$$#"
+          if [ "$$ICON_COUNT" -le 0 ]; then
+            printf "2762"
+            return
+          fi
+          RANDOM_NUM="$$(od -An -N2 -tu2 /dev/urandom 2>/dev/null | tr -d ' ')"
+          case "$$RANDOM_NUM" in
+            ""|*[!0-9]*) RANDOM_NUM="$$(date +%s)" ;;
+          esac
+          IDX="$$(( (RANDOM_NUM % ICON_COUNT) + 1 ))"
+          CURRENT_INDEX=1
+          for ICON in "$$@"; do
+            if [ "$$CURRENT_INDEX" -eq "$$IDX" ]; then
+              printf "%s" "$$ICON"
+              return
+            fi
+            CURRENT_INDEX="$$((CURRENT_INDEX + 1))"
+          done
+          printf "2762"
+        }
         normalize_name() {
           printf "%s" "$$1" | sed 's/^[[:space:].]*//;s/[[:space:].]*$$//' | tr '[:upper:]' '[:lower:]'
         }
@@ -429,7 +455,8 @@ services:
                 NAME_PRINT="$$NAME_TRIM"
               fi
               NAME_SHORT="$$(pad_center_7 "$$NAME_PRINT")"
-              add_frame "$$NAME_SHORT" 2762
+              PLAYER_ICON="$$(pick_random_player_icon)"
+              add_frame "$$NAME_SHORT" "$$PLAYER_ICON"
             done
             IFS="$$OLD_IFS"
           fi
